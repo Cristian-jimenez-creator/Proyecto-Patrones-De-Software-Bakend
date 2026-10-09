@@ -32,3 +32,13 @@ No publiques contraseñas ni la URL privada de conexión a PostgreSQL.
 ## Alcance de la demo
 
 El analizador actual es simulado; el backend no recibe video de cámaras ni detecta ahogamientos reales.
+
+## Wiki y documentación del proyecto
+
+- [Wiki del proyecto](https://github.com/Cristian-jimenez-creator/Proyecto-final-Patrones-De-Software/wiki)
+- [API REST](https://github.com/Cristian-jimenez-creator/Proyecto-final-Patrones-De-Software/wiki/API-REST)
+- [Arquitectura y estado](https://github.com/Cristian-jimenez-creator/Proyecto-final-Patrones-De-Software/wiki/Arquitectura)
+- [Modelo de datos](https://github.com/Cristian-jimenez-creator/Proyecto-final-Patrones-De-Software/wiki/Modelo-de-datos)
+- [Ejecución local](https://github.com/Cristian-jimenez-creator/Proyecto-final-Patrones-De-Software/wiki/Desarrollo-local)
+- [Despliegue en Render](https://github.com/Cristian-jimenez-creator/Proyecto-final-Patrones-De-Software/wiki/Despliegue-en-Render)
+- [Alcance y requisitos](https://github.com/Cristian-jimenez-creator/Proyecto-final-Patrones-De-Software/wiki/Alcance-y-requisitos)
