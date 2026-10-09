@@ -11,11 +11,18 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 public class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, Environment env) throws Exception {
+        http.cors(cors -> cors.configurationSource(corsConfigurationSource(env)));
         boolean enabled = Boolean.parseBoolean(env.getProperty("SMARTPOOL_AUTH_ENABLED", "false"));
         if (!enabled) {
             http.csrf(csrf -> csrf.disable())
@@ -23,7 +30,7 @@ public class SecurityConfig {
         } else {
             http.csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
                     .authorizeHttpRequests(auth -> auth
-                            .requestMatchers("/login.html", "/assets/**", "/api/csrf", "/health", "/error").permitAll()
+                            .requestMatchers("/api/csrf", "/health", "/error").permitAll()
                             .anyRequest().authenticated())
                     .formLogin(form -> form.loginPage("/login.html")
                             .loginProcessingUrl("/login")
@@ -33,6 +40,25 @@ public class SecurityConfig {
                     .logout(logout -> logout.logoutSuccessUrl("/login.html?loggedOut"));
         }
         return http.build();
+    }
+
+    private CorsConfigurationSource corsConfigurationSource(Environment env) {
+        String configuredOrigins = env.getProperty("SMARTPOOL_CORS_ALLOWED_ORIGINS", "http://localhost:5500");
+        List<String> origins = Arrays.stream(configuredOrigins.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isEmpty())
+                .toList();
+
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(origins);
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("Content-Type", "Accept", "X-XSRF-TOKEN", "X-CSRF-TOKEN"));
+        configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 
     @Bean
