@@ -1,6 +1,7 @@
 spring:
-  application:
-    name: pool-safety-backend
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
 
   # La contrasena no tiene valor por defecto: la aplicacion no arranca si falta DB_PASSWORD
   datasource:
