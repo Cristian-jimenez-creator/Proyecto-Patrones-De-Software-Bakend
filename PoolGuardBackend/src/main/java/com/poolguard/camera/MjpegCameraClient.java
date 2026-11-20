@@ -39,23 +39,37 @@ public final class MjpegCameraClient implements CameraClient {
     @Override public boolean isRunning() { return running; }
 
     private void readStream() {
-        try {
-            connection = (HttpURLConnection) streamUrl.toURL().openConnection();
-            connection.setConnectTimeout(8_000);
-            connection.setReadTimeout(0);
-            connection.setRequestProperty("Accept", "multipart/x-mixed-replace");
-            connection.connect();
-            if (connection.getResponseCode() != 200) {
-                throw new IOException("Camera returned HTTP " + connection.getResponseCode());
+        while (running) {
+            try {
+                connection = (HttpURLConnection) streamUrl.toURL().openConnection();
+                connection.setConnectTimeout(8_000);
+                connection.setReadTimeout(0);
+                connection.setRequestProperty("Accept", "multipart/x-mixed-replace");
+                connection.connect();
+                if (connection.getResponseCode() != 200) {
+                    throw new IOException("Camera returned HTTP " + connection.getResponseCode());
+                }
+                try (InputStream input = connection.getInputStream()) {
+                    extractJpegs(input);
+                }
+            } catch (IOException exception) {
+                if (running) {
+                    System.err.println("Camera connection failed; retrying: " + exception.getMessage());
+                }
+            } finally {
+                HttpURLConnection activeConnection = connection;
+                if (activeConnection != null) activeConnection.disconnect();
+                connection = null;
             }
-            try (InputStream input = connection.getInputStream()) {
-                extractJpegs(input);
+
+            if (running) {
+                try {
+                    Thread.sleep(2_000);
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    running = false;
+                }
             }
-        } catch (IOException exception) {
-            System.err.println("Camera connection failed: " + exception.getMessage());
-        } finally {
-            running = false;
-            connection = null;
         }
     }
 
