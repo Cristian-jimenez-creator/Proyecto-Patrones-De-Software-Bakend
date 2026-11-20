@@ -11,7 +11,7 @@ Use the repository root as the service root and `Dockerfile` as the Dockerfile. 
 
 - `POOLGUARD_INGEST_TOKEN`: a random secret of at least 32 characters.
 
-Render provides `PORT`. The API exposes `GET /health`, `POST /api/cameras/{cameraId}/frames`, and token-protected `GET /api/cameras/{cameraId}/frames/latest` and `GET /api/cameras/{cameraId}/frames/latest.jpg`.
+Render provides `PORT`. The API exposes `GET /health`, `POST /api/cameras/{cameraId}/frames`, and token-protected `GET /api/cameras/{cameraId}/frames/latest`, `GET /api/cameras/{cameraId}/frames/latest.jpg`, and `GET /api/cameras/{cameraId}/frames/stream.mjpg`.
 
 The server stores only the latest frame in memory. Frames are not written to disk or a database. If the service restarts or spins down, the client sends a new frame after reconnecting.
 
