@@ -7,6 +7,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -21,6 +22,11 @@ public final class BackendFramePublisher implements FrameObserver {
             .build();
     private final AtomicLong lastUploadAt = new AtomicLong();
     private final AtomicBoolean uploadInFlight = new AtomicBoolean();
+    private final URI motionEndpoint;
+    private final MotionClassifier motionClassifier = new MotionClassifier();
+    private final AtomicLong lastMotionPublishAt = new AtomicLong();
+    private volatile String lastMotionState = "";
+    private final AtomicBoolean motionUploadInFlight = new AtomicBoolean();
 
     public BackendFramePublisher(URI backendUrl, String token, String cameraId) {
         if (backendUrl != null && !usesHttpsOrLoopback(backendUrl)) {
@@ -28,6 +34,8 @@ public final class BackendFramePublisher implements FrameObserver {
         }
         this.endpoint = backendUrl == null ? null
                 : backendUrl.resolve("/api/cameras/" + cameraId + "/frames");
+        this.motionEndpoint = backendUrl == null ? null
+                : backendUrl.resolve("/api/cameras/" + cameraId + "/motion");
         this.token = token;
     }
 
@@ -41,6 +49,9 @@ public final class BackendFramePublisher implements FrameObserver {
 
     @Override
     public void onFrame(CameraClient.Frame frame) {
+        if (motionEndpoint != null && token != null && !token.isBlank()) {
+            publishMotion(motionClassifier.classify(frame));
+        }
         if (endpoint == null || token == null || token.isBlank()) return;
         if (!uploadInFlight.compareAndSet(false, true)) return;
 
@@ -67,6 +78,32 @@ public final class BackendFramePublisher implements FrameObserver {
                         System.err.println("Camera frame upload failed: " + failure.getMessage());
                     } else if (response.statusCode() / 100 != 2) {
                         System.err.println("Camera frame upload returned HTTP " + response.statusCode());
+                    }
+                });
+    }
+
+    private void publishMotion(MotionClassifier.Result result) {
+        long now = System.currentTimeMillis();
+        if (result.state().equals(lastMotionState) && now - lastMotionPublishAt.get() < 1_000) return;
+        if (!motionUploadInFlight.compareAndSet(false, true)) return;
+
+        lastMotionState = result.state();
+        lastMotionPublishAt.set(now);
+        String json = "{\"state\":\"" + result.state() + "\",\"motionPercent\":"
+                + result.motionPercent() + "}";
+        HttpRequest request = HttpRequest.newBuilder(motionEndpoint)
+                .timeout(Duration.ofSeconds(8))
+                .header("Authorization", "Bearer " + token)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
+                .build();
+        client.sendAsync(request, HttpResponse.BodyHandlers.discarding())
+                .whenComplete((response, failure) -> {
+                    motionUploadInFlight.set(false);
+                    if (failure != null) {
+                        System.err.println("Motion state upload failed: " + failure.getMessage());
+                    } else if (response.statusCode() / 100 != 2) {
+                        System.err.println("Motion state upload returned HTTP " + response.statusCode());
                     }
                 });
     }

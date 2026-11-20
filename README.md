@@ -11,7 +11,14 @@ Use the repository root as the service root and `Dockerfile` as the Dockerfile. 
 
 - `POOLGUARD_INGEST_TOKEN`: a random secret of at least 32 characters.
 
-Render provides `PORT`. The API exposes `GET /health`, `POST /api/cameras/{cameraId}/frames`, and token-protected `GET /api/cameras/{cameraId}/frames/latest`, `GET /api/cameras/{cameraId}/frames/latest.jpg`, and `GET /api/cameras/{cameraId}/frames/stream.mjpg`.
+The local camera client estimates motion from consecutive real JPEG frames and
+publishes `RED`, `YELLOW`, or `GREEN` to `/api/cameras/{cameraId}/motion` using
+the same bearer token. The ESP32 polls that protected endpoint and controls its
+traffic-light LEDs and buzzer. `RED` means no visible movement, `YELLOW` means
+moderate movement, and `GREEN` means active movement. The estimator compares
+pixels in the whole image; it does not identify a specific person or mannequin.
+
+Render provides `PORT`. The API exposes `GET /health`, `POST /api/cameras/{cameraId}/frames`, token-protected frame retrieval, and token-protected `POST`/`GET /api/cameras/{cameraId}/motion` for the latest movement state.
 
 The server stores only the latest frame in memory. Frames are not written to disk or a database. If the service restarts or spins down, the client sends a new frame after reconnecting.
 
