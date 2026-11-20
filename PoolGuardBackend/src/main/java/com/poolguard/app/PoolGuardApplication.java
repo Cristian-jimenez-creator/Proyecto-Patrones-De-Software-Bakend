@@ -9,6 +9,7 @@ import com.poolguard.risk.RemoteRiskAnalysisStrategy;
 import com.poolguard.ui.MonitorWindow;
 
 import javax.swing.SwingUtilities;
+import java.awt.GraphicsEnvironment;
 
 public final class PoolGuardApplication {
     private PoolGuardApplication() {
@@ -23,9 +24,11 @@ public final class PoolGuardApplication {
                 new RemoteRiskAnalysisStrategy(context.riskApiUrl())
         );
 
-        SwingUtilities.invokeLater(() -> {
-            MonitorWindow window = new MonitorWindow(monitor);
-            window.showWindow();
-        });
+        if (!GraphicsEnvironment.isHeadless()) {
+            SwingUtilities.invokeLater(() -> {
+                MonitorWindow window = new MonitorWindow(monitor);
+                window.showWindow();
+            });
+        }
     }
 }
