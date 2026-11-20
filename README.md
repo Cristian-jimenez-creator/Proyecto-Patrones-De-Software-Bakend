@@ -24,13 +24,13 @@ The server stores only the latest frame in memory. Frames are not written to dis
 
 ## Run the camera client on the local computer
 
-The phone and computer running the client must be on the same Wi-Fi network. In IP Webcam, start the server and use the stream URL shown by the app. The supplied screenshot shows `http://192.168.101.11:8080/video`.
+The phone and computer running the client must be on the same Wi-Fi network. In IP Webcam, start the server and use its current stream URL. For this installation, the camera is currently `http://192.168.168.251:8080/video`.
 
 In PowerShell, set these values on the computer that can reach the phone:
 
 ```powershell
 $env:POOLGUARD_CAMERA_URL = 'http://192.168.101.11:8080/video'
-$env:POOLGUARD_BACKEND_URL = 'https://YOUR-RENDER-SERVICE.onrender.com'
+$env:POOLGUARD_BACKEND_URL = 'https://proyecto-patrones-de-software-bakend.onrender.com'
 $env:POOLGUARD_INGEST_TOKEN = 'same secret configured in Render'
 $env:POOLGUARD_CAMERA_ID = 'phone-camera'
 mvn -f PoolGuardBackend/pom.xml package
@@ -39,4 +39,4 @@ java -Djava.awt.headless=false -jar PoolGuardBackend/target/poolguard-backend-1.
 
 Replace the Render hostname with the URL shown for the API service. Keep the token private. Do not put the phone's `192.168...` URL in Render; only the local client can reach that address.
 
-The client forwards actual JPEG frames. It does not create detections. Risk analysis remains in `POOLGUARD_RISK_API`; without a configured real analyzer, the status stays in the waiting state.
+The client forwards actual JPEG frames and estimates visible motion across the whole image. It does not recognize a specific person or mannequin. `POOLGUARD_RISK_API` remains separate and is used for real risk analysis when configured.
