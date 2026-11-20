@@ -5,6 +5,7 @@ import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -80,6 +81,47 @@ public class CameraFrameController {
                 .header("X-Frame-Received-At", frame.receivedAt().toString())
                 .header("X-Camera-Online", Boolean.toString(ageMillis <= ONLINE_WINDOW.toMillis()))
                 .body(frame.jpeg());
+    }
+
+    @GetMapping("/stream.mjpg")
+    public ResponseEntity<StreamingResponseBody> liveStream(
+            @PathVariable String cameraId,
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization) {
+        requireValidCameraId(cameraId);
+        requireToken(authorization);
+
+        StreamingResponseBody stream = output -> {
+            Instant lastSentAt = Instant.MIN;
+            CameraFrameStore.CameraFrame lastFrame = null;
+            while (!Thread.currentThread().isInterrupted()) {
+                java.util.Optional<CameraFrameStore.CameraFrame> next;
+                try {
+                    next = store.awaitNext(cameraId, lastSentAt, 2_000);
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+                if (next.isPresent()) {
+                    lastFrame = next.get();
+                    lastSentAt = lastFrame.receivedAt();
+                }
+                if (lastFrame == null) {
+                    continue;
+                }
+
+                byte[] jpeg = lastFrame.jpeg();
+                output.write(("--frame\r\nContent-Type: image/jpeg\r\nContent-Length: "
+                        + jpeg.length + "\r\n\r\n").getBytes(StandardCharsets.US_ASCII));
+                output.write(jpeg);
+                output.write("\r\n".getBytes(StandardCharsets.US_ASCII));
+                output.flush();
+            }
+        };
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("multipart/x-mixed-replace; boundary=frame"))
+                .cacheControl(CacheControl.noStore())
+                .body(stream);
     }
 
     private void requireToken(String authorization) {
