@@ -11,9 +11,9 @@ import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-/** Sends at most one real camera frame per second to the configured HTTPS API. */
+/** Sends up to four real camera frames per second to the configured HTTPS API. */
 public final class BackendFramePublisher implements FrameObserver {
-    private static final long MIN_UPLOAD_INTERVAL_MILLIS = 1_000;
+    private static final long MIN_UPLOAD_INTERVAL_MILLIS = 250;
     private final URI endpoint;
     private final String token;
     private final HttpClient client = HttpClient.newBuilder()
