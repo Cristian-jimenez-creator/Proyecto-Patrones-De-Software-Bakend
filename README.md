@@ -3,7 +3,7 @@
 This repository contains two separate programs:
 
 - `PoolGuardServer/` is the HTTPS-facing API deployed to Render. It accepts JPEG frames from the local camera client and keeps only the most recent frame in memory.
-- `PoolGuardBackend/` is the Java desktop client that reads the phone camera on the same Wi-Fi network and forwards up to one JPEG per second to the API.
+- `PoolGuardBackend/` is the Java desktop client that reads the phone camera on the same Wi-Fi network and forwards up to four JPEG frames per second to the API.
 
 ## Render API service
 
