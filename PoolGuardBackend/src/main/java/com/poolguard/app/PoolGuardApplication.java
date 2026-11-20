@@ -4,6 +4,7 @@ import com.poolguard.camera.CameraClient;
 import com.poolguard.camera.CameraClientFactory;
 import com.poolguard.camera.SecuredCameraClientProxy;
 import com.poolguard.config.ApplicationContext;
+import com.poolguard.monitor.BackendFramePublisher;
 import com.poolguard.monitor.PoolMonitoringFacade;
 import com.poolguard.risk.RemoteRiskAnalysisStrategy;
 import com.poolguard.ui.MonitorWindow;
@@ -20,6 +21,9 @@ public final class PoolGuardApplication {
         ApplicationContext context = ApplicationContext.getInstance();
         CameraClient camera = CameraClientFactory.create(context.cameraUrl());
         CameraClient securedCamera = new SecuredCameraClientProxy(camera, context.operatorKey(), context.sessionKey());
+        camera.addFrameObserver(new BackendFramePublisher(
+                context.backendUrl(), context.backendToken(), context.cameraId()
+        ));
         PoolMonitoringFacade monitor = new PoolMonitoringFacade(
                 securedCamera,
                 new RemoteRiskAnalysisStrategy(context.riskApiUrl())

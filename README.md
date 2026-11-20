@@ -1,46 +1,35 @@
-# Smart Pool Security — Backend
+# PoolGuard camera integration
 
-API REST desarrollada con Java 17 y Spring Boot. El código fuente, Maven y el esquema relacional están dentro de `backend/`. Este repositorio conserva en la raíz el README, los archivos de Git y el Dockerfile que usa Render. La interfaz web está en [Proyecto-Patrones-De-Software-Frontend](https://github.com/Cristian-jimenez-creator/Proyecto-Patrones-De-Software-Frontend), dentro de `frontend/`.
+This repository contains two separate programs:
 
-## Ejecutar localmente
+- `PoolGuardServer/` is the HTTPS-facing API deployed to Render. It accepts JPEG frames from the local camera client and keeps only the most recent frame in memory.
+- `PoolGuardBackend/` is the Java desktop client that reads the phone camera on the same Wi-Fi network and forwards up to one JPEG per second to the API.
 
-Requiere Java 17 y Maven. Desde la raíz del repositorio:
+## Render API service
+
+Use the repository root as the service root and `Dockerfile` as the Dockerfile. Set this secret in the Render service:
+
+- `POOLGUARD_INGEST_TOKEN`: a random secret of at least 32 characters.
+
+Render provides `PORT`. The API exposes `GET /health`, `POST /api/cameras/{cameraId}/frames`, and token-protected `GET /api/cameras/{cameraId}/frames/latest` and `GET /api/cameras/{cameraId}/frames/latest.jpg`.
+
+The server stores only the latest frame in memory. Frames are not written to disk or a database. If the service restarts or spins down, the client sends a new frame after reconnecting.
+
+## Run the camera client on the local computer
+
+The phone and computer running the client must be on the same Wi-Fi network. In IP Webcam, start the server and use the stream URL shown by the app. The supplied screenshot shows `http://192.168.101.11:8080/video`.
+
+In PowerShell, set these values on the computer that can reach the phone:
 
 ```powershell
-mvn -f backend/pom.xml spring-boot:run
+$env:POOLGUARD_CAMERA_URL = 'http://192.168.101.11:8080/video'
+$env:POOLGUARD_BACKEND_URL = 'https://YOUR-RENDER-SERVICE.onrender.com'
+$env:POOLGUARD_INGEST_TOKEN = 'same secret configured in Render'
+$env:POOLGUARD_CAMERA_ID = 'phone-camera'
+mvn -f PoolGuardBackend/pom.xml package
+java -Djava.awt.headless=false -jar PoolGuardBackend/target/poolguard-backend-1.0.0.jar
 ```
 
-La aplicación local usa H2 y, por defecto, deja la autenticación desactivada para facilitar la demostración.
+Replace the Render hostname with the URL shown for the API service. Keep the token private. Do not put the phone's `192.168...` URL in Render; only the local client can reach that address.
 
-## API
-
-- `GET /health`: estado del servicio.
-- `GET /api/pools`, `/api/cameras`, `/api/alerts`, `/api/statistics` y `/api/users`: datos del panel.
-- Las rutas de escritura y el inicio de sesión usan sesión y protección CSRF cuando `SMARTPOOL_AUTH_ENABLED=true`.
-- `GET /api/alerts/stream`: eventos de alertas mediante SSE.
-
-El esquema SQL de referencia está en `backend/modelo_piscina.sql`.
-
-## Variables de entorno en Render
-
-El perfil `prod` requiere `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` y `DB_PASSWORD` para PostgreSQL. Además:
-
-- `SMARTPOOL_AUTH_ENABLED=true`
-- `SMARTPOOL_AUTH_USERNAME` y `SMARTPOOL_AUTH_PASSWORD` (contraseña larga y privada)
-- `SMARTPOOL_CORS_ALLOWED_ORIGINS`: origen exacto del frontend.
-
-El Dockerfile de la raíz construye el código desde `backend/`. La configuración del servicio de Render existente no se cambia con esta reorganización. No publiques contraseñas ni la URL privada de conexión a PostgreSQL.
-
-## Wiki y documentación del proyecto
-
-- [Wiki del proyecto](https://github.com/Cristian-jimenez-creator/Proyecto-final-Patrones-De-Software/wiki)
-- [API REST](https://github.com/Cristian-jimenez-creator/Proyecto-final-Patrones-De-Software/wiki/API-REST)
-- [Arquitectura y estado](https://github.com/Cristian-jimenez-creator/Proyecto-final-Patrones-De-Software/wiki/Arquitectura)
-- [Modelo de datos](https://github.com/Cristian-jimenez-creator/Proyecto-final-Patrones-De-Software/wiki/Modelo-de-datos)
-- [Ejecución local](https://github.com/Cristian-jimenez-creator/Proyecto-final-Patrones-De-Software/wiki/Desarrollo-local)
-- [Despliegue en Render](https://github.com/Cristian-jimenez-creator/Proyecto-final-Patrones-De-Software/wiki/Despliegue-en-Render)
-- [Alcance y requisitos](https://github.com/Cristian-jimenez-creator/Proyecto-final-Patrones-De-Software/wiki/Alcance-y-requisitos)
-
-## Alcance de la demo
-
-El analizador actual es simulado; el backend no recibe video de cámaras ni detecta ahogamientos reales.
+The client forwards actual JPEG frames. It does not create detections. Risk analysis remains in `POOLGUARD_RISK_API`; without a configured real analyzer, the status stays in the waiting state.

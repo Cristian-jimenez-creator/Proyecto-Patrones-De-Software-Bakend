@@ -7,6 +7,8 @@ public final class ApplicationContext {
     private final URI cameraUrl;
     private final URI riskApiUrl;
     private final URI backendUrl;
+    private final String backendToken;
+    private final String cameraId;
     private final String operatorKey;
     private final String sessionKey;
 
@@ -16,6 +18,11 @@ public final class ApplicationContext {
         this.riskApiUrl = riskApi == null || riskApi.isBlank() ? null : URI.create(riskApi);
         String backendApi = System.getenv("POOLGUARD_BACKEND_URL");
         this.backendUrl = backendApi == null || backendApi.isBlank() ? null : URI.create(backendApi);
+        this.backendToken = System.getenv("POOLGUARD_INGEST_TOKEN");
+        this.cameraId = value("POOLGUARD_CAMERA_ID", "phone-camera");
+        if (!cameraId.matches("[A-Za-z0-9._-]{1,80}")) {
+            throw new IllegalArgumentException("POOLGUARD_CAMERA_ID may contain only letters, numbers, dots, underscores, and hyphens");
+        }
         this.operatorKey = System.getenv("POOLGUARD_OPERATOR_KEY");
         this.sessionKey = System.getenv("POOLGUARD_SESSION_KEY");
     }
@@ -35,6 +42,10 @@ public final class ApplicationContext {
     public URI backendUrl() {
         return backendUrl;
     }
+
+    public String backendToken() { return backendToken; }
+
+    public String cameraId() { return cameraId; }
 
     public String operatorKey() {
         return operatorKey;
