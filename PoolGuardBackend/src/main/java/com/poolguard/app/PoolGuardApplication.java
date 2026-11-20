@@ -10,12 +10,13 @@ import com.poolguard.ui.MonitorWindow;
 
 import javax.swing.SwingUtilities;
 import java.awt.GraphicsEnvironment;
+import java.util.concurrent.CountDownLatch;
 
 public final class PoolGuardApplication {
     private PoolGuardApplication() {
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         ApplicationContext context = ApplicationContext.getInstance();
         CameraClient camera = CameraClientFactory.create(context.cameraUrl());
         CameraClient securedCamera = new SecuredCameraClientProxy(camera, context.operatorKey(), context.sessionKey());
@@ -29,6 +30,10 @@ public final class PoolGuardApplication {
                 MonitorWindow window = new MonitorWindow(monitor);
                 window.showWindow();
             });
+        } else {
+            monitor.start();
+            Runtime.getRuntime().addShutdownHook(new Thread(monitor::stop));
+            new CountDownLatch(1).await();
         }
     }
 }
